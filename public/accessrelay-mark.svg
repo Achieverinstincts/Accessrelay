@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="AccessRelay">
+  <path fill="#efbd69" d="M14 4h36c5.523 0 10 4.477 10 10v41a5 5 0 0 1-5 5H14C8.477 60 4 55.523 4 50V14C4 8.477 8.477 4 14 4Z"/>
+  <path fill="none" stroke="#19231f" stroke-linecap="round" stroke-linejoin="round" stroke-width="4" d="M22 46h20a8 8 0 0 0 0-16H22a8 8 0 0 1 0-16h20"/>
+  <circle cx="18" cy="46" r="6" fill="#efbd69" stroke="#19231f" stroke-width="4"/>
+  <circle cx="46" cy="14" r="6" fill="#efbd69" stroke="#19231f" stroke-width="4"/>
+</svg>

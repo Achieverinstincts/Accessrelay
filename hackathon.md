@@ -4,8 +4,8 @@
 - **Started:** 8 September 2026, after the competition start
 - **Product:** A room-specific hotel accessibility evidence and inquiry workspace
 - **Convex production:** https://lovable-flamingo-74.convex.cloud
-- **Frontend:** publishing in progress
-- **Source repository:** publishing in progress
+- **Frontend:** https://accessrelay.emmanuelsekyi.chatgpt.site (public Sites deployment)
+- **Source repository:** https://github.com/Achieverinstincts/Accessrelay
 
 ## Verified build
 
@@ -20,8 +20,9 @@ On 20 September 2026, Firecrawl mapped and scraped Royal Lancaster London's offi
 - Five fictional browser workflows passed.
 - Authenticated real-inventory browser workflow passed on desktop and mobile.
 - Convex development and production pushes succeeded.
+- Public Sites production smoke passed account creation and real LiteAPI search.
 - Sanitized smoke artifacts and screenshots are stored in `artifacts/`.
 
 ## Honest boundary
 
-LiteAPI inventory, Convex production, Firecrawl source acquisition and the live model call are verified. AgentMail credentials and the public frontend/repository are still being completed. The fictional London workspace is explicitly labeled and never presented as hotel-confirmed evidence.
+LiteAPI inventory, Convex production, Firecrawl source acquisition, the live model call, the public source repository and the public Sites frontend are verified. AgentMail credentials and app-side Firecrawl credentials are still being completed. The fictional London workspace is explicitly labeled and never presented as hotel-confirmed evidence.
