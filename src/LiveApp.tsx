@@ -1,7 +1,7 @@
 import { HotelPhoto } from './HotelPhoto'
 import { HotelDiscovery } from './HotelDiscovery'
 import { MobileComparison } from './MobileComparison'
-import { useEffect, useMemo, useState, type ReactNode } from 'react'
+import { useMemo, useState, type ReactNode } from 'react'
 import * as Dialog from '@radix-ui/react-dialog'
 import { useAuthActions } from '@convex-dev/auth/react'
 import { useMutation, useQuery } from 'convex/react'
@@ -66,8 +66,8 @@ function InquiryEditor({ hotel, trip, revision, latest, attempts, close, saveDra
 export default function LiveApp({ showDemo }: { showDemo: () => void }) {
   const { signOut } = useAuthActions()
   const trips = useQuery(api.trips.list)
-  const [selectedId, setSelectedId] = useState<Id<'trips'> | null>(null)
-  useEffect(() => { if (!selectedId && trips?.[0]) setSelectedId(trips[0].id) }, [selectedId, trips])
+  const [selectedTripId, setSelectedId] = useState<Id<'trips'> | null>(null)
+  const selectedId = selectedTripId ?? trips?.[0]?.id ?? null
   const row = useQuery(api.trips.get, selectedId ? { id: selectedId } : 'skip')
   const research = useQuery(api.research.status, selectedId ? { tripId: selectedId } : 'skip')
   const inquiries = useQuery(api.inquiries.list, selectedId ? { tripId: selectedId } : 'skip')

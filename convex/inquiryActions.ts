@@ -1,9 +1,12 @@
 import { v } from 'convex/values'
-import { internal } from './_generated/api'
+import { components, internal } from './_generated/api'
 import { internalAction } from './_generated/server'
+import { AgentMail } from '@agentmail/convex'
 import { acceptReplyExtraction, replyExtractionPrompt } from '../src/replyExtraction'
 import { readEnv } from './env'
 import { sameMailbox } from '../src/emailIdentity'
+
+const agentmail = new AgentMail(components.agentmail)
 
 async function readBounded(response: Response): Promise<unknown> {
   if (!response.body) throw new Error('Provider returned no response body.')
@@ -30,43 +33,6 @@ async function readBounded(response: Response): Promise<unknown> {
   return JSON.parse(new TextDecoder().decode(bytes))
 }
 
-export const send = internalAction({
-  args: { inquiryId: v.id('inquiries') },
-  returns: v.null(),
-  handler: async (ctx, { inquiryId }) => {
-    const claimed = await ctx.runMutation(internal.inquiries.claimForSend, { inquiryId })
-    if (!claimed) return null
-    const key = readEnv('AGENTMAIL_API_KEY')
-    const inbox = readEnv('AGENTMAIL_INBOX_ID')
-    if (!key || !inbox) {
-      await ctx.runMutation(internal.inquiries.markSendProblem, { inquiryId, uncertain: false, message: 'Hotel email credentials are missing. Nothing was sent.' })
-      return null
-    }
-    try {
-      const response = await fetch(`https://api.agentmail.to/v0/inboxes/${encodeURIComponent(inbox)}/messages/send`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ to: claimed.recipient, subject: claimed.subject, text: claimed.body, headers: { 'X-AccessRelay-Inquiry': inquiryId } }),
-        signal: AbortSignal.timeout(25_000),
-      })
-      if (!response.ok) {
-        const uncertain = response.status >= 500 || response.status === 408 || response.status === 429
-        await ctx.runMutation(internal.inquiries.markSendProblem, { inquiryId, uncertain, message: uncertain ? `AgentMail returned HTTP ${response.status}; delivery is uncertain, so AccessRelay will not retry automatically.` : `AgentMail rejected the message with HTTP ${response.status}. Nothing was sent.` })
-        return null
-      }
-      const payload = await readBounded(response) as { message_id?: unknown; thread_id?: unknown }
-      if (typeof payload.message_id !== 'string' || typeof payload.thread_id !== 'string') {
-        await ctx.runMutation(internal.inquiries.markSendProblem, { inquiryId, uncertain: true, message: 'AgentMail accepted the request but returned no message identifiers. Delivery is uncertain, so AccessRelay will not retry automatically.' })
-        return null
-      }
-      await ctx.runMutation(internal.inquiries.markSent, { inquiryId, messageId: payload.message_id, threadId: payload.thread_id })
-    } catch {
-      await ctx.runMutation(internal.inquiries.markSendProblem, { inquiryId, uncertain: true, message: 'The connection ended before AgentMail confirmed the result. Delivery is uncertain, so AccessRelay will not retry automatically.' })
-    }
-    return null
-  },
-})
-
 export const interpretReply = internalAction({
   args: { receivedId: v.id('received') },
   returns: v.null(),
@@ -81,15 +47,11 @@ export const interpretReply = internalAction({
       let sender = context.sender
       let body = context.body
       if (!sender || !body) {
-        const messageResponse = await fetch(`https://api.agentmail.to/v0/inboxes/${encodeURIComponent(inbox)}/messages/${encodeURIComponent(context.providerMessageId)}`, {
-          headers: { Authorization: `Bearer ${agentMailKey}` },
-          signal: AbortSignal.timeout(25_000),
-        })
-        if (!messageResponse.ok) throw new Error(`AgentMail returned HTTP ${messageResponse.status} while fetching the full reply.`)
-        const message = await readBounded(messageResponse) as { message_id?: unknown; thread_id?: unknown; from?: unknown; extracted_text?: unknown }
+        const message = await agentmail.getMessage(ctx, inbox, context.providerMessageId) as { message_id?: unknown; thread_id?: unknown; from?: unknown; from_?: unknown; extracted_text?: unknown; text?: unknown }
         if (message.message_id !== context.providerMessageId || message.thread_id !== context.providerThreadId) throw new Error('AgentMail returned mismatched reply identifiers.')
-        sender = typeof message.from === 'string' ? message.from : sender
-        body = typeof message.extracted_text === 'string' ? message.extracted_text : body
+        const providerSender = message.from_ ?? message.from
+        sender = typeof providerSender === 'string' ? providerSender : Array.isArray(providerSender) && typeof providerSender[0] === 'string' ? providerSender[0] : sender
+        body = typeof message.extracted_text === 'string' ? message.extracted_text : typeof message.text === 'string' ? message.text : body
         await ctx.runMutation(internal.inquiries.storeFetchedReply, { receivedId, sender, body })
       }
       if (!sameMailbox(sender, context.recipient)) {

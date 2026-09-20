@@ -1,0 +1,23 @@
+{
+  "verifiedAt": "2026-09-20T17:00:14.792Z",
+  "publicUrl": "https://accessrelay.emmanuelsekyi.chatgpt.site",
+  "productionConvex": "https://lovable-flamingo-74.convex.cloud",
+  "inventoryProvider": "LiteAPI sandbox",
+  "inventoryProperty": "Royal Lancaster London",
+  "sourceUrl": "https://www.royallancaster.com/rooms/deluxecorner",
+  "firecrawlComponent": "@firecrawl/firecrawl-convex",
+  "researchEvent": "Website research finished with 0 source-grounded claims. Missing details remain unknown.",
+  "agentmailComponent": "@agentmail/convex",
+  "senderInbox": "accessrelay@agentmail.to",
+  "controlledRecipientInbox": "accessrelay-hotel-demo@agentmail.to",
+  "outboundMessageId": "<010001a0bfc29086-2d717b54-85c0-45dc-b86c-3dc842406865-000000@email.amazonses.com>",
+  "outboundThreadId": "b2e0ca00-36c1-4f90-b279-936d9d095946",
+  "controlledReplyMessageId": "<010001a0bfc2a41d-715eb10d-e50f-497e-818d-141016b12397-000000@email.amazonses.com>",
+  "sentEvent": "Inquiry sent to accessrelay-hotel-demo@agentmail.to. Waiting for the hotel’s reply.",
+  "processedEvent": "5 supported statements added from the hotel reply. Availability is confirmed.",
+  "acceptedClaims": 5,
+  "controlledTestDisclosure": "The recipient and reply were a second AgentMail inbox controlled by AccessRelay. This proves transport, webhook, thread matching and evidence extraction; it is not real hotel feedback.",
+  "browserErrors": [],
+  "elapsedMs": 148248,
+  "screenshot": "artifacts/sponsor-e2e.png"
+}

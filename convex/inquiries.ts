@@ -1,9 +1,15 @@
 import { getAuthUserId } from '@convex-dev/auth/server'
 import { ConvexError, v } from 'convex/values'
-import { internal } from './_generated/api'
+import { AgentMail, type OutboundId } from '@agentmail/convex'
+import { components, internal } from './_generated/api'
 import { internalMutation, internalQuery, mutation, query } from './_generated/server'
 import { evidence } from './validators'
 import { readEnv } from './env'
+
+const agentmail = new AgentMail(components.agentmail, {
+  retryAttempts: 3,
+  initialBackoffMs: 10_000,
+})
 
 const inquiryState = v.union(v.literal('draft'), v.literal('approved'), v.literal('sending'), v.literal('sent'), v.literal('uncertain'), v.literal('failed'))
 const summary = v.object({
@@ -21,6 +27,16 @@ const summary = v.object({
 
 function validEmail(value: string): boolean {
   return value.length <= 254 && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)
+}
+
+function record(value: unknown): Record<string, unknown> | null {
+  return value !== null && typeof value === 'object' ? value as Record<string, unknown> : null
+}
+
+function firstAddress(value: unknown): string {
+  if (typeof value === 'string') return value
+  if (Array.isArray(value) && typeof value[0] === 'string') return value[0]
+  return ''
 }
 
 export const list = query({
@@ -68,10 +84,10 @@ export const saveDraft = mutation({
     if (history.filter(item => ['approved', 'sending', 'sent', 'uncertain'].includes(item.state)).length >= 2) throw new ConvexError('This preview allows one initial inquiry and one follow-up per hotel.')
     const now = Date.now()
     if (previous && ['draft', 'failed'].includes(previous.state)) {
-      await ctx.db.patch(previous._id, { recipient, subject, body, tripRevision: trip.revision, state: 'draft', providerMessageId: null, providerThreadId: null, error: null, approvedAt: null, updatedAt: now })
+      await ctx.db.patch(previous._id, { recipient, subject, body, tripRevision: trip.revision, state: 'draft', providerOutboundId: null, providerMessageId: null, providerThreadId: null, error: null, approvedAt: null, updatedAt: now })
       return previous._id
     }
-    return await ctx.db.insert('inquiries', { tripId: args.tripId, hotelId: args.hotelId, recipient, subject, body, tripRevision: trip.revision, state: 'draft', providerMessageId: null, providerThreadId: null, error: null, approvedAt: null, updatedAt: now })
+    return await ctx.db.insert('inquiries', { tripId: args.tripId, hotelId: args.hotelId, recipient, subject, body, tripRevision: trip.revision, state: 'draft', providerOutboundId: null, providerMessageId: null, providerThreadId: null, error: null, approvedAt: null, updatedAt: now })
   },
 })
 
@@ -95,23 +111,18 @@ export const approveAndSend = mutation({
       else await ctx.db.insert('budgets', { key, day, used: 1 })
     }
 
+    const outboundId = await agentmail.sendMessage(ctx, readEnv('AGENTMAIL_INBOX_ID')!, {
+      to: inquiry.recipient,
+      subject: inquiry.subject,
+      text: inquiry.body,
+      labels: ['accessrelay', 'hotel-accessibility'],
+      headers: { 'X-AccessRelay-Inquiry': String(inquiryId) },
+    })
     const now = Date.now()
-    await ctx.db.patch(inquiry._id, { state: 'approved', approvedAt: now, error: null, updatedAt: now })
-    await ctx.db.insert('events', { tripId: inquiry.tripId, kind: 'inquiry-approved', message: 'You approved the hotel inquiry. AccessRelay queued exactly one send attempt.', at: now })
-    await ctx.scheduler.runAfter(0, internal.inquiryActions.send, { inquiryId })
-    await ctx.scheduler.runAfter(120_000, internal.inquiries.markStalledUncertain, { inquiryId })
+    await ctx.db.patch(inquiry._id, { state: 'sending', providerOutboundId: String(outboundId), approvedAt: now, error: null, updatedAt: now })
+    await ctx.db.insert('events', { tripId: inquiry.tripId, kind: 'inquiry-approved', message: 'You approved one hotel inquiry. Delivery is being confirmed.', at: now })
+    await ctx.scheduler.runAfter(2_000, internal.inquiries.reconcileDelivery, { inquiryId, attempt: 0 })
     return null
-  },
-})
-
-export const claimForSend = internalMutation({
-  args: { inquiryId: v.id('inquiries') },
-  returns: v.union(v.null(), v.object({ recipient: v.string(), subject: v.string(), body: v.string() })),
-  handler: async (ctx, { inquiryId }) => {
-    const inquiry = await ctx.db.get(inquiryId)
-    if (!inquiry || inquiry.state !== 'approved') return null
-    await ctx.db.patch(inquiry._id, { state: 'sending', updatedAt: Date.now() })
-    return { recipient: inquiry.recipient, subject: inquiry.subject, body: inquiry.body }
   },
 })
 
@@ -141,15 +152,56 @@ export const markSendProblem = internalMutation({
   },
 })
 
-export const markStalledUncertain = internalMutation({
-  args: { inquiryId: v.id('inquiries') },
+export const reconcileDelivery = internalMutation({
+  args: { inquiryId: v.id('inquiries'), attempt: v.number() },
   returns: v.null(),
-  handler: async (ctx, { inquiryId }) => {
+  handler: async (ctx, { inquiryId, attempt }) => {
     const inquiry = await ctx.db.get(inquiryId)
     if (!inquiry || inquiry.state !== 'sending') return null
-    const now = Date.now()
-    await ctx.db.patch(inquiry._id, { state: 'uncertain', error: 'The provider did not return a final result. AccessRelay will not retry automatically because the message may already have been sent.', updatedAt: now })
-    await ctx.db.insert('events', { tripId: inquiry.tripId, kind: 'inquiry-uncertain', message: 'Email outcome is uncertain. No automatic retry will occur.', at: now })
+    const outboundId = inquiry.providerOutboundId
+    if (typeof outboundId !== 'string') {
+      await ctx.runMutation(internal.inquiries.markSendProblem, { inquiryId, uncertain: false, message: 'The email queue record is missing. Nothing was sent.' })
+      return null
+    }
+
+    const status = await agentmail.status(ctx, outboundId as OutboundId)
+    if (status && ['sent', 'delivered'].includes(status.status) && status.agentmailMessageId && status.threadId) {
+      await ctx.runMutation(internal.inquiries.markSent, { inquiryId, messageId: status.agentmailMessageId, threadId: status.threadId })
+      return null
+    }
+    if (status && ['failed', 'bounced', 'complained', 'rejected'].includes(status.status)) {
+      await ctx.runMutation(internal.inquiries.markSendProblem, { inquiryId, uncertain: false, message: 'AgentMail could not deliver this inquiry. Review the address before trying again.' })
+      return null
+    }
+    if (attempt < 18) {
+      await ctx.scheduler.runAfter(10_000, internal.inquiries.reconcileDelivery, { inquiryId, attempt: attempt + 1 })
+      return null
+    }
+    await ctx.runMutation(internal.inquiries.markSendProblem, { inquiryId, uncertain: true, message: 'The provider did not return a final result. Check the AgentMail inbox before sending again because the message may already have been sent.' })
+    return null
+  },
+})
+
+export const onAgentMailMessageReceived = internalMutation({
+  args: { message: v.any(), thread: v.any(), eventId: v.string() },
+  returns: v.null(),
+  handler: async (ctx, { message, eventId }) => {
+    const payload = record(message)
+    const inbox = readEnv('AGENTMAIL_INBOX_ID')
+    if (!payload || !eventId || !inbox || payload.inbox_id !== inbox) return null
+    if (typeof payload.message_id !== 'string' || typeof payload.thread_id !== 'string') return null
+    const sender = firstAddress(payload.from_ ?? payload.from)
+    const body = typeof payload.extracted_text === 'string'
+      ? payload.extracted_text
+      : typeof payload.text === 'string'
+        ? payload.text
+        : ''
+    await ctx.runMutation(internal.inquiries.receive, {
+      providerMessageId: payload.message_id,
+      providerThreadId: payload.thread_id,
+      sender,
+      body,
+    })
     return null
   },
 })

@@ -10,11 +10,14 @@
     "preview": "vite preview",
     "test": "node --test tests/*.test.mjs",
     "typecheck": "tsc -b && tsc -p convex/tsconfig.json",
-    "backend": "convex dev"
+    "backend": "convex dev",
+    "postinstall": "node scripts/patch-agentmail-component.mjs"
   },
   "dependencies": {
+    "@agentmail/convex": "^0.1.0",
     "@auth/core": "latest",
     "@convex-dev/auth": "latest",
+    "@firecrawl/firecrawl-convex": "^0.1.1",
     "@radix-ui/react-dialog": "^1.1.23",
     "convex": "latest",
     "lucide-react": "latest",

@@ -10,7 +10,7 @@ import LiveApp from './LiveApp.tsx'
 const convexUrl = import.meta.env.VITE_CONVEX_URL as string | undefined
 const convex = convexUrl ? new ConvexReactClient(convexUrl) : null
 
-function ConnectedRoot() {
+export function ConnectedRoot() {
   const { isAuthenticated, isLoading } = useConvexAuth()
   const [live, setLive] = useState(() => new URLSearchParams(window.location.search).get('workspace') !== 'demo')
   if (!live) return <App onOpenLive={() => setLive(true)}/>
@@ -19,7 +19,7 @@ function ConnectedRoot() {
   return <LiveApp showDemo={() => setLive(false)}/>
 }
 
-function UnconnectedRoot() {
+export function UnconnectedRoot() {
   const [demo, setDemo] = useState(() => new URLSearchParams(window.location.search).get('workspace') === 'demo')
   if (demo) return <App/>
   return <main className="empty-workspace"><h1>Find a stay. Verify the room.</h1><p>The saved hotel workspace is not connected in this build.</p><p>You can explore the clearly labeled fictional London example while the connection is restored.</p><button className="secondary" onClick={() => setDemo(true)}>View fictional London demo</button></main>

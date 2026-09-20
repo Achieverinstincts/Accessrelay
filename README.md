@@ -12,7 +12,9 @@ AccessRelay compares room-specific accessibility evidence across a traveler's ow
 
 The primary workflow searches real LiteAPI sandbox inventory, loads real property images and room names, and requires an official hotel source before research. A clearly labeled fictional example remains at `?workspace=demo`. New comparisons start with every accessibility fact unanswered.
 
-Convex production includes account ownership checks, revision-based edits, bounded inventory/research budgets, a 24-hour provider cache and durable research and inquiry records. Firecrawl has been proven against a real official hotel page and gpt-oss-120b has been invoked live through Groq. Deterministic quote, room and unit checks decide whether a model proposal can become evidence. The public Sites deployment has passed account creation and real-inventory search. Live AgentMail and app-side Firecrawl credentials remain release gates; see BUILD_STATE.md and hackathon.md for the exact boundary.
+Convex production includes account ownership checks, revision-based edits, bounded inventory/research budgets, a 24-hour provider cache and durable research and inquiry records. The official Firecrawl Convex component reads the selected official room page, and OpenAI's gpt-oss-120b proposes structured facts through Groq. Deterministic quote, room and unit checks decide whether a model proposal can become evidence. The official AgentMail Convex component provides a durable outbound queue, signed and deduplicated inbound webhooks, thread state and bounded retries.
+
+On 20 September, the public Sites app completed the full production path with a controlled second AgentMail inbox: real LiteAPI property discovery, official-page Firecrawl research, reviewed outbound email, same-thread reply, signed webhook ingest, sender matching, and five source-bound reply statements plus date-specific availability returned to the reactive comparison. The controlled recipient is disclosed in the evidence and is not represented as a real hotel. See `artifacts/sponsor-e2e.json`, `BUILD_STATE.md` and `hackathon.md`.
 
 ## Development
 
@@ -26,13 +28,13 @@ node scripts/local-backend.mjs --once
 npm run dev -- --host 127.0.0.1 --port 5173
 ```
 
-The local-backend script enables anonymous local Convex development with a 120-second startup allowance for modest machines. It does not create a paid plan. A public deployment will require a Convex account.
+The local-backend script enables anonymous local Convex development with a 120-second startup allowance for modest machines. It does not create a paid plan. `npm ci` also applies a narrow compatibility patch for `@agentmail/convex` 0.1.0, which declares the API key at Convex's isolated component boundary. The patch is guarded and fails if the upstream package changes unexpectedly.
 
 Run `npx playwright test`. The configuration uses installed Microsoft Edge, one worker and the local Vite server. The controlled-demo suite and authenticated real-inventory scenario have passed.
 
 ## Runtime credentials
 
-Keep credentials in the deployment environment, never in source or browser variables. The research action uses FIRECRAWL_API_KEY and GROQ_API_KEY. The email integration will require AGENTMAIL_API_KEY, AGENTMAIL_INBOX_ID and a webhook signing secret. A working research connector in Codex does not supply these application credentials.
+Keep credentials in the deployment environment, never in source or browser variables. Research uses `FIRECRAWL_API_KEY` and `GROQ_API_KEY`; email uses `AGENTMAIL_API_KEY`, `AGENTMAIL_INBOX_ID` and `AGENTMAIL_WEBHOOK_SECRET`. The setup helpers read local secret files and print only configuration status. A working research connector in Codex does not supply these application credentials.
 
 No paid resources are authorized. The use of OpenAI's open-weight model through Groq still needs organizer confirmation for sponsor eligibility.
 
@@ -53,4 +55,4 @@ No paid resources are authorized. The use of OpenAI's open-weight model through 
 - tests/: domain, extraction and browser scenarios.
 - ../research/DECISION.md: opportunity research, competition and validation plan.
 
-A working preview is an intermediate milestone. The AgentMail round trip, feedback and final submission package remain required.
+The production product path and captioned demo are verified. Genuine target-user feedback, the social post, eligibility confirmation and hackathon submission remain required before claiming the entry is complete.

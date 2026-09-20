@@ -1,9 +1,12 @@
 import { v } from 'convex/values'
 import { internalAction } from './_generated/server'
-import { internal } from './_generated/api'
+import { components, internal } from './_generated/api'
+import { FirecrawlClient } from '@firecrawl/firecrawl-convex'
 import { acceptCandidates, extractionPrompt } from '../src/extraction'
 import { isPublicHotelUrl } from '../src/urlSafety'
 import { readEnv } from './env'
+
+const firecrawl = new FirecrawlClient(components.firecrawl)
 
 async function readBounded(response: Response): Promise<unknown> {
   if (!response.body) throw new Error('Missing provider response.')
@@ -43,18 +46,17 @@ export const extract = internalAction({
       const groqKey = readEnv('GROQ_API_KEY')
       if (!firecrawlKey || !groqKey) throw new Error('Research credentials missing.')
 
-      const response = await fetch('https://api.firecrawl.dev/v2/scrape', {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${firecrawlKey}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url: context.hotel.url, formats: ['markdown'], onlyMainContent: true, maxAge: 0, timeout: 45_000 }),
-        signal: AbortSignal.timeout(55_000),
+      const page = await firecrawl.scrape(ctx, context.hotel.url, {
+        formats: ['markdown'],
+        onlyMainContent: true,
+        maxAge: 0,
+        timeout: 45_000,
+        removeBase64Images: true,
       })
-      if (!response.ok) throw new Error(`Research provider returned HTTP ${response.status}.`)
-      const payload = await readBounded(response) as { success?: boolean; data?: { markdown?: string; metadata?: { statusCode?: number; url?: string } } }
-      if (!payload.success || typeof payload.data?.markdown !== 'string' || (payload.data.metadata?.statusCode ?? 200) >= 400) throw new Error('No usable source page returned.')
-      const url = payload.data.metadata?.url || context.hotel.url
+      if (typeof page.markdown !== 'string' || (page.metadata?.statusCode ?? 200) >= 400) throw new Error('No usable source page returned.')
+      const url = page.metadata?.url || page.metadata?.sourceURL || context.hotel.url
       if (!isPublicHotelUrl(url)) throw new Error('Invalid final source URL.')
-      const document = { body: payload.data.markdown.slice(0, 10_000), room: context.hotel.room, label: `${context.hotel.name} room information`, url, recordedAt: new Date().toISOString(), source: 'published' as const }
+      const document = { body: page.markdown.slice(0, 10_000), room: context.hotel.room, label: `${context.hotel.name} room information`, url, recordedAt: new Date().toISOString(), source: 'published' as const }
 
       const modelResponse = await fetch('https://api.groq.com/openai/v1/chat/completions', {
         method: 'POST',

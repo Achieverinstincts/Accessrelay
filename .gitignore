@@ -6,6 +6,13 @@ backend-staging/
 node_modules.failed-*/
 playwright-report/
 test-results/
+artifacts/demo-storage.json
+artifacts/demo-recording/
+artifacts/agentmail-setup.json
+artifacts/favicon-preview.png
+artifacts/accessrelay-demo-silent.webm
+artifacts/demo-*.jpg
+artifacts/demo-*.png
 logs
 *.log
 npm-debug.log*
