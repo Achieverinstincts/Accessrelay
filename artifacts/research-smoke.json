@@ -1,0 +1,12 @@
+{
+  "verifiedAt": "2026-09-20T07:05:18.344Z",
+  "sourceUrl": "https://www.royallancaster.com/rooms/deluxecorner",
+  "firecrawlSourceFile": ".firecrawl/royal-lancaster-deluxe-corner.md",
+  "firecrawlScrapeId": "01a0bda1-372a-760f-83f6-4a12a329aa66",
+  "model": "openai/gpt-oss-120b",
+  "latencyMs": 3923,
+  "proposedClaims": 0,
+  "acceptedClaims": 0,
+  "unsupportedRollInClaimRejected": true,
+  "nextProductAction": "Ask the hotel for room-specific measurements."
+}

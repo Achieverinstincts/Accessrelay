@@ -1,0 +1,46 @@
+.inventory-disclosure { padding: 14px 16px; background: #edf3ec; border-radius: 10px; font-size: 14px; line-height: 1.55; color: #25483b; }
+.discovery-search { display: grid; grid-template-columns: 2fr 1fr; gap: 12px; margin: 20px 0; align-items: end; }
+.inventory-results { display: grid; gap: 12px; max-height: 390px; overflow-y: auto; margin-bottom: 22px; }
+.inventory-result { display: grid; grid-template-columns: 125px 1fr; border: 1px solid #b9c5bd; border-radius: 12px; overflow: hidden; background: white; }
+.inventory-result img { width: 125px; height: 100%; min-height: 150px; object-fit: cover; }
+.inventory-result > div { padding: 14px; }
+.inventory-result h3 { margin: 0 0 6px; font-size: 17px; }
+.inventory-result p { margin: 0 0 8px; font-size: 14px; }
+.inventory-result small { display: block; font-size: 12px; margin-bottom: 10px; }
+.hotel-photo { margin: 0 0 16px; }
+.hotel-photo img, .photo-unavailable { width: 100%; height: 150px; object-fit: cover; border-radius: 12px; }
+.photo-unavailable { display: grid; place-items: center; background: #e8ece6; color: #536055; font-size: 14px; }
+.hotel-photo figcaption { margin-top: 8px; font-size: 12px; line-height: 1.5; color: #536055; }
+.hotel-photo figcaption span { display: block; }
+.mobile-hotel-list { display: none; }
+@media (max-width: 580px) {
+  .live-shell .sidebar { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 10px; }
+  .live-shell .sidebar .brand { grid-column: 1; }
+  .live-shell .sidebar nav { grid-column: 1 / -1; order: 5; display: flex; width: 100%; margin: 0; justify-content: flex-start; overflow-x: auto; }
+  .live-shell .sidebar-create { grid-column: 2; display: inline-flex; }
+  .live-shell .sidebar-bottom { grid-column: 3; display: block; }
+  .live-shell .sidebar-bottom { margin: 0; padding: 0; border: 0; }
+  .live-shell .sidebar .connection-button { font-size: 0; }
+  .live-shell .sidebar .connection-button svg:last-child { display: none; }
+  .live-shell .table-scroll { display: none; }
+  .mobile-hotel-list { display: grid; gap: 16px; outline: none; }
+  .mobile-hotel-list:focus-visible { outline: 3px solid var(--sun); outline-offset: 4px; border-radius: 20px; }
+  .mobile-hotel-card { padding: 16px; background: #fffdf9; border: 1px solid #e2d9cc; border-radius: 20px; box-shadow: var(--shadow); }
+  .mobile-hotel-card h3 { margin: 4px 0; font-family: var(--serif); font-size: 27px; line-height: 1.05; }
+  .mobile-location { margin: 0 0 10px; color: var(--muted); font-size: 12px; }
+  .mobile-hotel-card .research-button { margin: 14px 0; }
+  .mobile-findings { display: grid; gap: 8px; margin: 10px -4px 14px; }
+  .mobile-finding { width: 100%; min-height: 72px; padding: 13px; display: flex; align-items: center; justify-content: space-between; gap: 12px; border: 0; border-radius: 13px; text-align: left; }
+  .mobile-finding > span:first-child { display: grid; gap: 4px; }
+  .mobile-finding strong { font-size: 13px; }
+  .mobile-finding small { color: var(--muted); font-size: 10px; }
+  .mobile-finding .finding-value { flex: 0 0 auto; }
+  .mobile-availability { margin: 14px 0; padding: 14px; display: flex; justify-content: space-between; gap: 15px; background: #f4efe7; border-radius: 13px; }
+  .mobile-availability > span { display: grid; gap: 4px; }
+  .mobile-availability > span:last-child { text-align: right; }
+  .mobile-availability strong { font-size: 12px; }
+  .mobile-availability small { color: var(--muted); font-size: 9px; }
+  .inventory-result { grid-template-columns: 85px 1fr; }
+  .inventory-result img { width: 85px; }
+  .discovery-search { grid-template-columns: 1fr; }
+}
